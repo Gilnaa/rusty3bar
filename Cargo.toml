@@ -1,0 +1,9 @@
+[package]
+name = "rusty3bar"
+version = "0.1.0"
+authors = ["Gilad Naaman <gilad.naaman@gmail.com>"]
+
+[dependencies]
+json = "0.11.5"
+time = "0.1"
+local-ip = "0.1"
