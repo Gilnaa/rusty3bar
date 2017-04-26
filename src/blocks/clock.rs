@@ -42,7 +42,7 @@ impl Clock {
 
 impl BlockProducer for Clock {
 	fn update(&mut self) -> Block {
-		Block { 
+		Block {
 			full_text: time::strftime(&self.format, &time::now()).unwrap(), 
 			..self.fallback_settings.clone()
 		}

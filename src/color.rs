@@ -7,6 +7,12 @@ impl ToString for Color {
 	}
 }
 
+impl ::serde::Serialize for Color {
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: ::serde::Serializer {
+		self.to_string().serialize(serializer)
+	}
+}
+
 pub mod named {
 	use super::Color;
 

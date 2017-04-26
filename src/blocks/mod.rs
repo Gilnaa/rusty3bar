@@ -1,5 +1,3 @@
-use json;
-
 mod clock;
 mod ip;
 mod shell;
@@ -10,117 +8,105 @@ pub use self::shell::*;
 
 use super::color::*;
 
-pub trait BlockProducer {
-	fn update(&mut self) -> Block;
-	// fn is_event_associated(&self, name: String) -> bool;
-	// fn handle_event(&mut self) -> bool;
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(from="usize")] 
+pub enum Button {
+	Left = 1,
+	Middle,
+	Right,
+	ScrollUp,
+	ScrollDown
 }
 
-#[derive(Debug, Clone)]
+impl From<usize> for Button {
+	fn from(raw: usize) -> Button {
+		match raw {
+            1 => Button::Left,
+            2 => Button::Middle,
+            3 => Button::Right,
+			4 => Button::ScrollUp,
+			5 => Button::ScrollDown,
+            _ => unimplemented!(),
+        }
+	}
+}
+
+pub trait BlockProducer {
+	fn update(&mut self) -> Block;
+
+	fn get_name(&self) -> Option<&str> { None }
+	fn get_instance(&self) -> Option<&str> { None }
+	fn handle_event(&mut self, event: Button) { }
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub enum Padding {
 	PixelSize(usize),
 	StringSize(String)
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum Alignement {
+	#[serde(rename = "left")]
 	Left,
+	#[serde(rename = "right")]
 	Right,
+	#[serde(rename = "center")]
 	Center
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum MarkupType {
+	#[serde(rename = "none")]
 	None,
+	#[serde(rename = "pango")]
 	Pango
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Block {
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub name: Option<String>,
+
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub instance: Option<String>,
+
 	pub full_text: String,
+
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub short_text: Option<String>,
+
+	#[serde(skip_serializing_if = "Option::is_none", rename = "color")]
 	pub foreground_color: Option<Color>,
+
+	#[serde(skip_serializing_if = "Option::is_none", rename = "background")]
 	pub background_color: Option<Color>,
+		
+	#[serde(skip_serializing_if = "Option::is_none", rename = "border")]
 	pub border_color: Option<Color>,
+	
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub min_width: Option<Padding>,
+
 	pub align: Alignement,
 
+	#[serde(rename = "urgent")]
 	pub is_urgent: bool,
+
 	pub separator: bool,
+	
+	#[serde(rename = "separator_block_width")]
 	pub separator_width: usize,
 
+	#[serde(rename = "markup")]
 	pub markup_type: MarkupType
-}
-
-impl ToString for Padding {
-	fn to_string(&self) -> String {
-		match self {
-			&Padding::PixelSize(size) => size.to_string(),
-			&Padding::StringSize(ref text) => text.clone()
-		}
-	}
-}
-
-
-impl ToString for Alignement {
-    fn to_string(&self) -> String {
-    	format!("{:?}", self)
-    }
-}
-
-impl Block {
-	pub fn to_json(self) -> json::object::Object {
-		let mut obj = json::object::Object::new();
-		
-		obj["full_text"] = self.full_text.into();
-
-		if let Some(short_text) = self.short_text {
-			obj["short_text"] = short_text.into();
-		}
-
-		if let Some(color) = self.foreground_color {
-			obj["color"] = color.to_string().into();
-		}
-
-		if let Some(color) = self.background_color {
-			obj["background"] = color.to_string().into();
-		}
-
-		if let Some(color) = self.border_color {
-			obj["border"] = color.to_string().into();
-		}
-
-		if let Some(w) = self.min_width{
-			obj["min_width"] = match w {
-				Padding::PixelSize(size) => size.into(),
-				Padding::StringSize(text) => text.into(),
-			}
-		}
-
-		obj["align"] = format!("{:?}", self.align).into();
-		// Alignement
-
-		if self.is_urgent {
-			obj["urgent"] = json::JsonValue::Boolean(true);
-		}
-
-		obj["separator"] =json::JsonValue::Boolean(self.separator);
-		if self.separator {
-			obj["separator_block_width"] = self.separator_width.into();
-		}
-
-		obj["markup"] = match self.markup_type {
-			MarkupType::None => "none".into(),
-		    MarkupType::Pango => "pango".into()
-		};
-
-		obj
-	}
 }
 
 impl Default for Block {
 	fn default() -> Self {
 		Block {
+			name: None,
+			instance: None,
 			full_text: "".into(),
 			short_text: None,
 
