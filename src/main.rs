@@ -1,17 +1,18 @@
-extern crate time;
-
 #[macro_use]
 extern crate serde_derive;
 
 extern crate serde;
 extern crate serde_json;
 
-use blocks::*;
+extern crate time;
 
+use blocks::*;
+use i3::*;
 use std::time::Duration;
 
-pub mod blocks;
-pub mod statusline;
+mod i3;
+mod blocks;
+mod statusline;
 pub mod color;
 mod infinite_array;
 
@@ -75,11 +76,11 @@ fn main() {
 	});
 
 	line.add(Funky::new());
-	
-	line.add(BlockBuilder::new().full_text("Cash me ousside how 'bout dat")
-								.foreground_color(color::named::BLACK)
-								.background_color(color::named::WHITE)
-								.border_color(color::named::RED).finish());
+
+	// line.add(BlockBuilder::new().full_text("Cash me ousside how 'bout dat")
+	// 							.foreground_color(color::named::BLACK)
+	// 							.background_color(color::named::WHITE)
+	// 							.border_color(color::named::RED).finish());
 
 	line.add(Shell::new("echo $(whoami) @ $(hostname)"));
 

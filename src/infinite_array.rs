@@ -1,5 +1,5 @@
 //! by dtolnay
-use serde::de::{self, DeserializeOwned};
+use serde::de::{DeserializeOwned};
 
 use serde_json;
 use std::io;
