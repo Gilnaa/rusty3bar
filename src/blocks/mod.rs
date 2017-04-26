@@ -46,20 +46,17 @@ pub enum Padding {
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "lowercase")] 
 pub enum Alignement {
-	#[serde(rename = "left")]
 	Left,
-	#[serde(rename = "right")]
 	Right,
-	#[serde(rename = "center")]
 	Center
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "lowercase")] 
 pub enum MarkupType {
-	#[serde(rename = "none")]
 	None,
-	#[serde(rename = "pango")]
 	Pango
 }
 

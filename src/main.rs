@@ -73,7 +73,9 @@ fn main() {
 		foreground_color: Some(color::named::CRIMSON),
 		..Default::default()
 	});
+
 	line.add(Funky::new());
+	
 	line.add(BlockBuilder::new().full_text("Cash me ousside how 'bout dat")
 								.foreground_color(color::named::BLACK)
 								.background_color(color::named::WHITE)
