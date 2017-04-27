@@ -9,11 +9,12 @@ extern crate time;
 use blocks::*;
 use i3::*;
 use std::time::Duration;
+use std::borrow::Cow;
 
+pub mod color;
 mod i3;
 mod blocks;
 mod statusline;
-pub mod color;
 mod infinite_array;
 
 struct Funky {
@@ -38,8 +39,8 @@ impl Funky {
 }
 
 impl BlockProducer for Funky {
-    fn update(&mut self) -> Block {
-        self.data.clone()
+    fn update<'a>(&'a mut self) -> Cow<'a, Block> {
+        Cow::Borrowed(&self.data)
     }
 
     fn get_name(&self) -> Option<&str> {
@@ -67,12 +68,12 @@ impl BlockProducer for Funky {
 
 struct Counter(usize);
 impl BlockProducer for Counter {
-    fn update(&mut self) -> Block {
+    fn update(&mut self) -> Cow<'static, Block> {
         self.0 += 1;
-        Block {
+        Cow::Owned(Block {
             full_text: self.0.to_string(),
             ..Default::default()
-        }
+        })
     }
 }
 

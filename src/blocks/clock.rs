@@ -2,6 +2,7 @@ use super::{BlockProducer, Block};
 
 use std;
 use time;
+use std::borrow::Cow;
 
 pub struct Clock {
     format: String,
@@ -40,10 +41,9 @@ impl Clock {
 }
 
 impl BlockProducer for Clock {
-    fn update(&mut self) -> Block {
-        Block {
-            full_text: time::strftime(&self.format, &time::now()).unwrap(),
-            ..self.fallback_settings.clone()
-        }
+    fn update<'a>(&'a mut self) -> Cow<'a, Block> {
+        self.fallback_settings.full_text = time::strftime(&self.format, &time::now()).unwrap();
+
+        Cow::Borrowed(&self.fallback_settings)
     }
 }

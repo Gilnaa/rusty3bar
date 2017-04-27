@@ -1,6 +1,7 @@
 use super::*;
 use color::named;
 use std::process::Command;
+use std::borrow::Cow;
 
 pub struct Shell {
     shell: String,
@@ -21,14 +22,14 @@ impl Shell {
 }
 
 impl BlockProducer for Shell {
-    fn update(&mut self) -> Block {
+    fn update(&mut self) -> Cow<'static, Block> {
         let err_block = Block {
             full_text: "SHELL ERROR".into(),
             foreground_color: Some(named::RED),
             ..Block::default()
         };
 
-        if let Ok(output) = Command::new(self.shell.clone())
+        let res = if let Ok(output) = Command::new(self.shell.clone())
                .arg("-c")
                .arg(self.command.clone())
                .output() {
@@ -44,6 +45,8 @@ impl BlockProducer for Shell {
             }
         } else {
             err_block
-        }
+        };
+
+        Cow::Owned(res)
     }
 }

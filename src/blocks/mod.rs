@@ -1,4 +1,5 @@
 use super::i3::*;
+use std::borrow::Cow;
 
 mod clock;
 mod shell;
@@ -10,7 +11,7 @@ pub use self::shell::*;
 /// BlockProducer can respond to mouse-events.
 pub trait BlockProducer {
     /// Updates the state of the producer and returns the new block data.
-    fn update(&mut self) -> Block;
+    fn update<'a>(&'a mut self) -> Cow<'a, Block>;
 
     /// Gets the name of the block, if available.
     fn get_name(&self) -> Option<&str> {
@@ -27,16 +28,16 @@ pub trait BlockProducer {
 }
 
 impl BlockProducer for Block {
-    fn update(&mut self) -> Block {
-        self.clone()
+    fn update<'a>(&'a mut self) -> Cow<'a, Block> {
+        Cow::Borrowed(self)
     }
 }
 
 impl<T: Into<String> + Clone> BlockProducer for T {
-    fn update(&mut self) -> Block {
-        Block {
+    fn update(&mut self) -> Cow<'static, Block> {
+        Cow::Owned(Block {
             full_text: self.clone().into(),
             ..Block::default()
-        }
+        })
     }
 }

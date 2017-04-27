@@ -37,14 +37,16 @@ impl StatusLine {
         // Spawn a thread that refreshes the status bar
         let blocks = self.blocks.clone();
         thread::spawn(move || loop {
-                          let mut lock = blocks.lock().unwrap();
-                          let array = lock.iter_mut().map(|b| b.update()).collect::<Vec<_>>();
-                          println!("{},", serde_json::to_string(&array).unwrap());
+			let mut lock = blocks.lock().unwrap();
+			{
+				let array = lock.iter_mut().map(|b| b.update()).collect::<Vec<_>>();
+				println!("{},", serde_json::to_string(&array).unwrap());
+			}
 
-                          force_refresh_blocker
-                              .wait_timeout(lock, interval)
-                              .unwrap();
-                      });
+			force_refresh_blocker
+				.wait_timeout(lock, interval)
+				.unwrap();
+		});
 
         // Wait for mouse-events from the bar process.
         let stdin = std::io::stdin();
