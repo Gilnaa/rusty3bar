@@ -6,6 +6,7 @@ use std::time::Duration;
 
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::Condvar;
 use ::infinite_array::InfiniteArray;
 
 pub struct StatusLine {
@@ -28,33 +29,45 @@ impl StatusLine {
 
 	/// Consumes the status line and start outputing the data blocks.
 	pub fn run(self, interval: Duration) {
-
-		// We must print this in order for i3bar to recieve JSON.
+		// We must print this header, telling i3bar to recieve JSON.
 		// Otherwise, anything sent will be interpreted as plain-text.
 		println!("{{ \"version\": 1, \"click_events\": true }} [ ");
 		
+		let force_refresh = Arc::new(Condvar::new());
+		let force_refresh_blocker = force_refresh.clone();
+
 		// Spawn a thread that refreshes the status bar
 		let blocks = self.blocks.clone();
 		thread::spawn(move || {
 			loop {
-				let array = blocks.lock().unwrap().iter_mut().map(|b| { b.update() }).collect::<Vec<_>>();
+				let mut lock = blocks.lock().unwrap();
+				let array = lock.iter_mut().map(|b| { b.update() }).collect::<Vec<_>>();
 				println!("{},", serde_json::to_string(&array).unwrap());
 
-				thread::sleep(interval);
+				force_refresh_blocker.wait_timeout(lock, interval).unwrap();
 			}	
 		});
 
-
 		// Wait for mouse-events from the bar process.
 		let stdin = std::io::stdin();
+
 		for event in InfiniteArray::<_, ::i3::I3BarEvent>::new(stdin.lock()) {
 			let event = event.unwrap();
-			
+
+			// No support for no instance right now.
+			if event.name.is_none() || event.instance.is_none() {
+				continue;
+			}
+
+			let name = event.name.unwrap();
+			let instance = event.instance.unwrap();
+
 			let mut blocks = self.blocks.lock().unwrap();
+			let source = blocks.iter_mut().find(|block| block.get_name() == Some(&name) &&
+														block.get_instance() == Some(&instance));
 			
-			let source = blocks.iter_mut().find(|block| block.get_name() == event.name.as_ref().map(|x| &**x ) &&
-														block.get_instance() == event.instance.as_ref().map(|x| &**x));
 			if let Some(source) = source {
+				force_refresh.notify_one();
 				source.handle_event(event.button)
 			}
 		}

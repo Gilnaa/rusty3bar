@@ -66,6 +66,17 @@ impl BlockProducer for Funky {
 	}
 }
 
+struct Counter(usize);
+impl BlockProducer for Counter {
+	fn update(&mut self) -> Block {
+		self.0 += 1;
+		Block {
+			full_text: self.0.to_string(),
+			..Default::default()
+		}
+	}
+}
+
 fn main() {
 	let mut line = statusline::StatusLine::new();
 
@@ -80,10 +91,7 @@ fn main() {
 
 	line.add(Funky::new());
 
-	// line.add(BlockBuilder::new().full_text("Cash me ousside how 'bout dat")
-	// 							.foreground_color(color::named::BLACK)
-	// 							.background_color(color::named::WHITE)
-	// 							.border_color(color::named::RED).finish());
+	line.add(Counter(0));
 
 	line.add(Shell::new("echo $(whoami) @ $(hostname)"));
 
