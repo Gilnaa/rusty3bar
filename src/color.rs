@@ -1,15 +1,10 @@
+/// A simple RGB color representation 
 #[derive(Debug, Clone, Copy)]
 pub struct Color(pub u8, pub u8, pub u8);
 
-impl ToString for Color {
-	fn to_string(&self) -> String {
-		format!("#{:02x}{:02x}{:02x}", self.0, self.1, self.2)
-	}
-}
-
 impl ::serde::Serialize for Color {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: ::serde::Serializer {
-		self.to_string().serialize(serializer)
+		format!("#{:02x}{:02x}{:02x}", self.0, self.1, self.2).serialize(serializer)
 	}
 }
 

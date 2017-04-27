@@ -1,10 +1,14 @@
 //! by dtolnay
+//! A struct used to deserialize an infinite array of JSON objects.
+
 use serde::de::{DeserializeOwned};
 
 use serde_json;
 use std::io;
 use std::marker::PhantomData;
 
+/// A struct used to deserialize an infinite array of JSON objects of type T,
+/// coming from stream of type R.
 pub struct InfiniteArray<R, T> {
     reader: R,
     skip: Option<u8>,
@@ -12,6 +16,7 @@ pub struct InfiniteArray<R, T> {
 }
 
 impl<R, T> InfiniteArray<R, T> {
+    /// Craete a new infinite-array deserializer using the given reader.
     pub fn new(reader: R) -> Self {
         InfiniteArray {
             reader: reader,

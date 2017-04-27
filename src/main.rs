@@ -54,13 +54,15 @@ impl BlockProducer for Funky {
 		if self.flag {
 			self.data.foreground_color = Some(::color::named::CRIMSON);
 			self.data.background_color = Some(::color::named::BLACK);
+			self.data.full_text = "BLARG".into();
 		}
 		else {
 			self.data.foreground_color = Some(::color::named::BLACK);
 			self.data.background_color = Some(::color::named::CRIMSON);
+			self.data.full_text = "FLORP".into();
+			
 		}
 		self.flag = !self.flag;
-		// std::process::Command::new("notify-send").arg(format!("event {:?}", event)).spawn();
 	}
 }
 
@@ -70,8 +72,9 @@ fn main() {
 	line.add("Simple block");
 
 	line.add(Block {
-		full_text: "complicated block".into(),
+		full_text: "<b>E</b> = M&#169;<sup>2</sup>".into(),
 		foreground_color: Some(color::named::CRIMSON),
+		markup_type: MarkupType::Pango,
 		..Default::default()
 	});
 
