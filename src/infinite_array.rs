@@ -1,7 +1,7 @@
 //! by dtolnay
 //! A struct used to deserialize an infinite array of JSON objects.
 
-use serde::de::{DeserializeOwned};
+use serde::de::DeserializeOwned;
 
 use serde_json;
 use std::io;
@@ -39,7 +39,8 @@ impl<R, T> InfiniteArray<R, T>
                 return Ok(true);
             }
             if !(one_byte[0] as char).is_whitespace() {
-                return Err(io::Error::new(io::ErrorKind::InvalidInput, format!("byte {}", one_byte[0])));
+                return Err(io::Error::new(io::ErrorKind::InvalidInput,
+                                          format!("byte {}", one_byte[0])));
             }
         }
     }
@@ -70,9 +71,7 @@ impl<R, T> Iterator for InfiniteArray<R, T>
                 self.skip = Some(b',');
                 Some(Ok(v))
             }
-            Some(Err(err)) => {
-                Some(Err(err.into()))
-            }
+            Some(Err(err)) => Some(Err(err.into())),
             None => None,
         }
     }
