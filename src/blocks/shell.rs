@@ -1,5 +1,4 @@
 use super::*;
-use color::named;
 use std::process::Command;
 use std::borrow::Cow;
 
@@ -21,11 +20,11 @@ impl Shell {
     }
 }
 
-impl BlockProducer for Shell {
+impl Widget for Shell {
     fn update(&mut self) -> Cow<'static, Block> {
         let err_block = Block {
             full_text: "SHELL ERROR".into(),
-            foreground_color: Some(named::RED),
+            foreground_color: Some(::color::RED),
             ..Block::default()
         };
 

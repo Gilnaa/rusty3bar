@@ -1,4 +1,4 @@
-use super::blocks::BlockProducer;
+use super::blocks::Widget;
 use serde_json;
 use std::thread;
 use std;
@@ -10,7 +10,7 @@ use std::sync::Condvar;
 use infinite_array::InfiniteArray;
 
 pub struct StatusLine {
-    blocks: Arc<Mutex<Vec<Box<BlockProducer + Send + 'static>>>>,
+    blocks: Arc<Mutex<Vec<Box<Widget + Send + 'static>>>>,
 }
 
 impl StatusLine {
@@ -20,7 +20,7 @@ impl StatusLine {
     }
 
     /// Add a new block to the status-line
-    pub fn add<T: BlockProducer + Send + 'static>(&mut self, block: T) {
+    pub fn add<T: Widget + Send + 'static>(&mut self, block: T) {
         let mut lock = self.blocks.lock().unwrap();
         lock.push(Box::new(block));
     }

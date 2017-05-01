@@ -1,6 +1,24 @@
+use std::str::FromStr;
+use std::ascii::AsciiExt;
+use std::hash::{Hash, Hasher};
+use serde::de::{Deserialize, Deserializer};
+use std::fmt::{Display, Formatter, Error};
+
 /// A simple RGB color representation
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Color(pub u8, pub u8, pub u8);
+
+impl Color {
+    /// Constructs a color from its components.
+    pub fn from_parts(r: u8, g: u8, b: u8) -> Self {
+        Color(r, g, b)
+    }
+
+    /// Constructs a color from its color name.
+    pub fn from_name(name: &str) -> Option<Color> {
+        COLORS.get(&CaseInsensitiveString(name)).map(|c| **c)
+    }
+}
 
 impl ::serde::Serialize for Color {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -10,168 +28,260 @@ impl ::serde::Serialize for Color {
     }
 }
 
-pub mod named {
-    use super::Color;
+impl<'de> Deserialize<'de> for Color {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(deserializer)?; 
+        Color::from_str(&s).map_err(::serde::de::Error::custom)
+    }
+}
 
-    // Pink
-    pub static PINK: Color = Color(255, 192, 203);
-    pub static LIGHT_PINK: Color = Color(255, 182, 193);
-    pub static HOT_PINK: Color = Color(255, 105, 180);
-    pub static DEEP_PINK: Color = Color(255, 20, 147);
-    pub static PALE_VIOLET_RED: Color = Color(219, 112, 147);
-    pub static MEDIUM_VIOLET_RED: Color = Color(199, 21, 133);
+impl FromStr for Color {
+    type Err = &'static str;
 
-    // Red
-    pub static LIGHT_SALMON: Color = Color(255, 160, 122);
-    pub static SALMON: Color = Color(250, 128, 114);
-    pub static DARK_SALMON: Color = Color(233, 150, 122);
-    pub static LIGHT_CORAL: Color = Color(240, 128, 128);
-    pub static INDIAN_RED: Color = Color(205, 92, 92);
-    pub static CRIMSON: Color = Color(220, 20, 60);
-    pub static FIRE_BRICK: Color = Color(178, 34, 34);
-    pub static DARK_RED: Color = Color(139, 0, 0);
-    pub static RED: Color = Color(255, 0, 0);
+    fn from_str(s: &str) -> Result<Color, &'static str> {
+        if s.starts_with("#") {
+            if s.len() != "#RRGGBB".len() {
+                Err("Invalid length for hex color string")
+            }
+            else {
+                let r = u8::from_str_radix(&s[1..3], 16).map_err(|_| "Failed to parse # color component.")?;
+                let g = u8::from_str_radix(&s[3..5], 16).map_err(|_| "Failed to parse # color component.")?;
+                let b = u8::from_str_radix(&s[5..7], 16).map_err(|_| "Failed to parse # color component.")?;
 
-    // Orange
-    pub static ORANGE_RED: Color = Color(255, 69, 0);
-    pub static TOMATO: Color = Color(255, 99, 71);
-    pub static CORAL: Color = Color(255, 127, 80);
-    pub static DARK_ORANGE: Color = Color(255, 140, 0);
-    pub static ORANGE: Color = Color(255, 165, 0);
+                Ok(Color::from_parts(r, g, b))
+            }
+        }
+        else {
+            Color::from_name(s).ok_or("Unrecognized color name")
+        }
+    }
+}
 
-    // Yellow
-    pub static YELLOW: Color = Color(255, 255, 0);
-    pub static LIGHT_YELLOW: Color = Color(255, 255, 224);
-    pub static LEMON_CHIFFON: Color = Color(255, 250, 205);
-    pub static LIGHT_GOLDENROD_YELLOW: Color = Color(250, 250, 210);
-    pub static PAPAYA_WHIP: Color = Color(255, 239, 213);
-    pub static MOCCASIN: Color = Color(255, 228, 181);
-    pub static PEACH_PUFF: Color = Color(255, 218, 185);
-    pub static PALE_GOLDENROD: Color = Color(238, 232, 170);
-    pub static KHAKI: Color = Color(240, 230, 140);
-    pub static DARK_KHAKI: Color = Color(189, 183, 107);
-    pub static GOLD: Color = Color(255, 215, 0);
+impl Display for Color {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        f.write_str(&format!("#{:02x}{:02x}{:02x}", self.0, self.1, self.2))
+    }
+}
 
-    // Brown
-    pub static CORNSILK: Color = Color(255, 248, 220);
-    pub static BLANCHED_ALMOND: Color = Color(255, 235, 205);
-    pub static BISQUE: Color = Color(255, 228, 196);
-    pub static NAVAJO_WHITE: Color = Color(255, 222, 173);
-    pub static WHEAT: Color = Color(245, 222, 179);
-    pub static BURLY_WOOD: Color = Color(222, 184, 135);
-    pub static TAN: Color = Color(210, 180, 140);
-    pub static ROSY_BROWN: Color = Color(188, 143, 143);
-    pub static SANDY_BROWN: Color = Color(244, 164, 96);
-    pub static GOLDENROD: Color = Color(218, 165, 32);
-    pub static DARK_GOLDENROD: Color = Color(184, 134, 11);
-    pub static PERU: Color = Color(205, 133, 63);
-    pub static CHOCOLATE: Color = Color(210, 105, 30);
-    pub static SADDLE_BROWN: Color = Color(139, 69, 19);
-    pub static SIENNA: Color = Color(160, 82, 45);
-    pub static BROWN: Color = Color(165, 42, 42);
-    pub static MAROON: Color = Color(128, 0, 0);
+pub struct CaseInsensitiveString<'a>(pub &'a str);
 
-    // Green
-    pub static DARK_OLIVE_GREEN: Color = Color(85, 107, 47);
-    pub static OLIVE: Color = Color(128, 128, 0);
-    pub static OLIVE_DRAB: Color = Color(107, 142, 35);
-    pub static YELLOW_GREEN: Color = Color(154, 205, 50);
-    pub static LIME_GREEN: Color = Color(50, 205, 50);
-    pub static LIME: Color = Color(0, 255, 0);
-    pub static LAWN_GREEN: Color = Color(124, 252, 0);
-    pub static CHARTREUSE: Color = Color(127, 255, 0);
-    pub static GREEN_YELLOW: Color = Color(173, 255, 47);
-    pub static SPRING_GREEN: Color = Color(0, 255, 127);
-    pub static MEDIUM_SPRING_GREEN: Color = Color(0, 250, 154);
-    pub static LIGHT_GREEN: Color = Color(144, 238, 144);
-    pub static PALE_GREEN: Color = Color(152, 251, 152);
-    pub static DARK_SEA_GREEN: Color = Color(143, 188, 143);
-    pub static MEDIUM_AQUAMARINE: Color = Color(102, 205, 170);
-    pub static MEDIUM_SEA_GREEN: Color = Color(60, 179, 113);
-    pub static SEA_GREEN: Color = Color(46, 139, 87);
-    pub static FOREST_GREEN: Color = Color(34, 139, 34);
-    pub static GREEN: Color = Color(0, 128, 0);
-    pub static DARK_GREEN: Color = Color(0, 100, 0);
+impl<'a> ::std::hash::Hash for CaseInsensitiveString<'a> {
+    fn hash<H: ::std::hash::Hasher>(&self, state: &mut H) {
+        for ch in self.0.chars() {
+            for upper_ch in ch.to_uppercase() {
+                state.write_u32(upper_ch as u32);
+            }
+        }
+    }
+}
 
-    // Cyan
-    pub static AQUA: Color = Color(0, 255, 255);
-    pub static CYAN: Color = Color(0, 255, 255);
-    pub static LIGHT_CYAN: Color = Color(224, 255, 255);
-    pub static PALE_TURQUOISE: Color = Color(175, 238, 238);
-    pub static AQUAMARINE: Color = Color(127, 255, 212);
-    pub static TURQUOISE: Color = Color(64, 224, 208);
-    pub static MEDIUM_TURQUOISE: Color = Color(72, 209, 204);
-    pub static DARK_TURQUOISE: Color = Color(0, 206, 209);
-    pub static LIGHT_SEA_GREEN: Color = Color(32, 178, 170);
-    pub static CADET_BLUE: Color = Color(95, 158, 160);
-    pub static DARK_CYAN: Color = Color(0, 139, 139);
-    pub static TEAL: Color = Color(0, 128, 128);
+impl<'a> PartialEq for CaseInsensitiveString<'a> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.eq_ignore_ascii_case(other.0)
+    }
+}
 
-    // Blue
-    pub static LIGHT_STEEL_BLUE: Color = Color(176, 196, 222);
-    pub static POWDER_BLUE: Color = Color(176, 224, 230);
-    pub static LIGHT_BLUE: Color = Color(173, 216, 230);
-    pub static SKY_BLUE: Color = Color(135, 206, 235);
-    pub static LIGHT_SKY_BLUE: Color = Color(135, 206, 250);
-    pub static DEEP_SKY_BLUE: Color = Color(0, 191, 255);
-    pub static DODGER_BLUE: Color = Color(30, 144, 255);
-    pub static CORNFLOWER_BLUE: Color = Color(100, 149, 237);
-    pub static STEEL_BLUE: Color = Color(70, 130, 180);
-    pub static ROYAL_BLUE: Color = Color(65, 105, 225);
-    pub static BLUE: Color = Color(0, 0, 255);
-    pub static MEDIUM_BLUE: Color = Color(0, 0, 205);
-    pub static DARK_BLUE: Color = Color(0, 0, 139);
-    pub static NAVY: Color = Color(0, 0, 128);
-    pub static MIDNIGHT_BLUE: Color = Color(25, 25, 112);
+impl<'a> Eq for CaseInsensitiveString<'a> { }
 
-    // Purple, violet, & magenta
-    pub static LAVENDER: Color = Color(230, 230, 250);
-    pub static THISTLE: Color = Color(216, 191, 216);
-    pub static PLUM: Color = Color(221, 160, 221);
-    pub static VIOLET: Color = Color(238, 130, 238);
-    pub static ORCHID: Color = Color(218, 112, 214);
-    pub static FUCHSIA: Color = Color(255, 0, 255);
-    pub static MAGENTA: Color = Color(255, 0, 255);
-    pub static MEDIUM_ORCHID: Color = Color(186, 85, 211);
-    pub static MEDIUM_PURPLE: Color = Color(147, 112, 219);
-    pub static BLUE_VIOLET: Color = Color(138, 43, 226);
-    pub static DARK_VIOLET: Color = Color(148, 0, 211);
-    pub static DARK_ORCHID: Color = Color(153, 50, 204);
-    pub static DARK_MAGENTA: Color = Color(139, 0, 139);
-    pub static PURPLE: Color = Color(128, 0, 128);
-    pub static INDIGO: Color = Color(75, 0, 130);
-    pub static DARK_SLATE_BLUE: Color = Color(72, 61, 139);
-    pub static SLATE_BLUE: Color = Color(106, 90, 205);
-    pub static MEDIUM_SLATE_BLUE: Color = Color(123, 104, 238);
+/// Creates a set of named constants of a ceratin types, along with a mapping of name => value.
+macro_rules! named_map {
+    { map $col_name:ident<$const_type:ident> = { $($name:ident => $data:expr),+ } } => {
+        use std::collections::HashMap;
+        
+        $(pub static $name: $const_type = $data;)+
 
-    // White
-    pub static WHITE: Color = Color(255, 255, 255);
-    pub static SNOW: Color = Color(255, 250, 250);
-    pub static HONEYDEW: Color = Color(240, 255, 240);
-    pub static MINT_CREAM: Color = Color(245, 255, 250);
-    pub static AZURE: Color = Color(240, 255, 255);
-    pub static ALICE_BLUE: Color = Color(240, 248, 255);
-    pub static GHOST_WHITE: Color = Color(248, 248, 255);
-    pub static WHITE_SMOKE: Color = Color(245, 245, 245);
-    pub static SEASHELL: Color = Color(255, 245, 238);
-    pub static BEIGE: Color = Color(245, 245, 220);
-    pub static OLD_LACE: Color = Color(253, 245, 230);
-    pub static FLORAL_WHITE: Color = Color(255, 250, 240);
-    pub static IVORY: Color = Color(255, 255, 240);
-    pub static ANTIQUE_WHITE: Color = Color(250, 235, 215);
-    pub static LINEN: Color = Color(250, 240, 230);
-    pub static LAVENDER_BLUSH: Color = Color(255, 240, 245);
-    pub static MISTY_ROSE: Color = Color(255, 228, 225);
+        lazy_static! {
+            pub static ref $col_name: HashMap<CaseInsensitiveString<'static>, &'static Color> = {
+                let mut map = HashMap::new();
+                $(map.insert(CaseInsensitiveString(stringify!($name)), &$name);)+
+                map
+            };
+        }
+    }
+}
 
-    // Black
-    pub static GAINSBORO: Color = Color(220, 220, 220);
-    pub static LIGHT_GRAY: Color = Color(211, 211, 211);
-    pub static SILVER: Color = Color(192, 192, 192);
-    pub static DARK_GRAY: Color = Color(169, 169, 169);
-    pub static GRAY: Color = Color(128, 128, 128);
-    pub static DIM_GRAY: Color = Color(105, 105, 105);
-    pub static LIGHT_SLATE_GRAY: Color = Color(119, 136, 153);
-    pub static SLATE_GRAY: Color = Color(112, 128, 144);
-    pub static DARK_SLATE_GRAY: Color = Color(47, 79, 79);
-    pub static BLACK: Color = Color(0, 0, 0);
+named_map! {
+    map COLORS<Color> = {
+        // Pink
+        PINK => Color(255, 192, 203),
+        LIGHT_PINK => Color(255, 182, 193),
+        HOT_PINK => Color(255, 105, 180),
+        DEEP_PINK => Color(255, 20, 147),
+        PALE_VIOLET_RED => Color(219, 112, 147),
+        MEDIUM_VIOLET_RED => Color(199, 21, 133),
+
+        // Red
+        LIGHT_SALMON => Color(255, 160, 122),
+        SALMON => Color(250, 128, 114),
+        DARK_SALMON => Color(233, 150, 122),
+        LIGHT_CORAL => Color(240, 128, 128),
+        INDIAN_RED => Color(205, 92, 92),
+        CRIMSON => Color(220, 20, 60),
+        FIRE_BRICK => Color(178, 34, 34),
+        DARK_RED => Color(139, 0, 0),
+        RED => Color(255, 0, 0),
+
+        // Orange
+        ORANGE_RED => Color(255, 69, 0),
+        TOMATO => Color(255, 99, 71),
+        CORAL => Color(255, 127, 80),
+        DARK_ORANGE => Color(255, 140, 0),
+        ORANGE => Color(255, 165, 0),
+
+        // Yellow
+        YELLOW => Color(255, 255, 0),
+        LIGHT_YELLOW => Color(255, 255, 224),
+        LEMON_CHIFFON => Color(255, 250, 205),
+        LIGHT_GOLDENROD_YELLOW => Color(250, 250, 210),
+        PAPAYA_WHIP => Color(255, 239, 213),
+        MOCCASIN => Color(255, 228, 181),
+        PEACH_PUFF => Color(255, 218, 185),
+        PALE_GOLDENROD => Color(238, 232, 170),
+        KHAKI => Color(240, 230, 140),
+        DARK_KHAKI => Color(189, 183, 107),
+        GOLD => Color(255, 215, 0),
+
+        // Brown
+        CORNSILK => Color(255, 248, 220),
+        BLANCHED_ALMOND => Color(255, 235, 205),
+        BISQUE => Color(255, 228, 196),
+        NAVAJO_WHITE => Color(255, 222, 173),
+        WHEAT => Color(245, 222, 179),
+        BURLY_WOOD => Color(222, 184, 135),
+        TAN => Color(210, 180, 140),
+        ROSY_BROWN => Color(188, 143, 143),
+        SANDY_BROWN => Color(244, 164, 96),
+        GOLDENROD => Color(218, 165, 32),
+        DARK_GOLDENROD => Color(184, 134, 11),
+        PERU => Color(205, 133, 63),
+        CHOCOLATE => Color(210, 105, 30),
+        SADDLE_BROWN => Color(139, 69, 19),
+        SIENNA => Color(160, 82, 45),
+        BROWN => Color(165, 42, 42),
+        MAROON => Color(128, 0, 0),
+
+        // Green
+        DARK_OLIVE_GREEN => Color(85, 107, 47),
+        OLIVE => Color(128, 128, 0),
+        OLIVE_DRAB => Color(107, 142, 35),
+        YELLOW_GREEN => Color(154, 205, 50),
+        LIME_GREEN => Color(50, 205, 50),
+        LIME => Color(0, 255, 0),
+        LAWN_GREEN => Color(124, 252, 0),
+        CHARTREUSE => Color(127, 255, 0),
+        GREEN_YELLOW => Color(173, 255, 47),
+        SPRING_GREEN => Color(0, 255, 127),
+        MEDIUM_SPRING_GREEN => Color(0, 250, 154),
+        LIGHT_GREEN => Color(144, 238, 144),
+        PALE_GREEN => Color(152, 251, 152),
+        DARK_SEA_GREEN => Color(143, 188, 143),
+        MEDIUM_AQUAMARINE => Color(102, 205, 170),
+        MEDIUM_SEA_GREEN => Color(60, 179, 113),
+        SEA_GREEN => Color(46, 139, 87),
+        FOREST_GREEN => Color(34, 139, 34),
+        GREEN => Color(0, 128, 0),
+        DARK_GREEN => Color(0, 100, 0),
+
+        // Cyan
+        AQUA => Color(0, 255, 255),
+        CYAN => Color(0, 255, 255),
+        LIGHT_CYAN => Color(224, 255, 255),
+        PALE_TURQUOISE => Color(175, 238, 238),
+        AQUAMARINE => Color(127, 255, 212),
+        TURQUOISE => Color(64, 224, 208),
+        MEDIUM_TURQUOISE => Color(72, 209, 204),
+        DARK_TURQUOISE => Color(0, 206, 209),
+        LIGHT_SEA_GREEN => Color(32, 178, 170),
+        CADET_BLUE => Color(95, 158, 160),
+        DARK_CYAN => Color(0, 139, 139),
+        TEAL => Color(0, 128, 128),
+
+        // Blue
+        LIGHT_STEEL_BLUE => Color(176, 196, 222),
+        POWDER_BLUE => Color(176, 224, 230),
+        LIGHT_BLUE => Color(173, 216, 230),
+        SKY_BLUE => Color(135, 206, 235),
+        LIGHT_SKY_BLUE => Color(135, 206, 250),
+        DEEP_SKY_BLUE => Color(0, 191, 255),
+        DODGER_BLUE => Color(30, 144, 255),
+        CORNFLOWER_BLUE => Color(100, 149, 237),
+        STEEL_BLUE => Color(70, 130, 180),
+        ROYAL_BLUE => Color(65, 105, 225),
+        BLUE => Color(0, 0, 255),
+        MEDIUM_BLUE => Color(0, 0, 205),
+        DARK_BLUE => Color(0, 0, 139),
+        NAVY => Color(0, 0, 128),
+        MIDNIGHT_BLUE => Color(25, 25, 112),
+
+        // Purple, violet, & magenta
+        LAVENDER => Color(230, 230, 250),
+        THISTLE => Color(216, 191, 216),
+        PLUM => Color(221, 160, 221),
+        VIOLET => Color(238, 130, 238),
+        ORCHID => Color(218, 112, 214),
+        FUCHSIA => Color(255, 0, 255),
+        MAGENTA => Color(255, 0, 255),
+        MEDIUM_ORCHID => Color(186, 85, 211),
+        MEDIUM_PURPLE => Color(147, 112, 219),
+        BLUE_VIOLET => Color(138, 43, 226),
+        DARK_VIOLET => Color(148, 0, 211),
+        DARK_ORCHID => Color(153, 50, 204),
+        DARK_MAGENTA => Color(139, 0, 139),
+        PURPLE => Color(128, 0, 128),
+        INDIGO => Color(75, 0, 130),
+        DARK_SLATE_BLUE => Color(72, 61, 139),
+        SLATE_BLUE => Color(106, 90, 205),
+        MEDIUM_SLATE_BLUE => Color(123, 104, 238),
+
+        // White
+        WHITE => Color(255, 255, 255),
+        SNOW => Color(255, 250, 250),
+        HONEYDEW => Color(240, 255, 240),
+        MINT_CREAM => Color(245, 255, 250),
+        AZURE => Color(240, 255, 255),
+        ALICE_BLUE => Color(240, 248, 255),
+        GHOST_WHITE => Color(248, 248, 255),
+        WHITE_SMOKE => Color(245, 245, 245),
+        SEASHELL => Color(255, 245, 238),
+        BEIGE => Color(245, 245, 220),
+        OLD_LACE => Color(253, 245, 230),
+        FLORAL_WHITE => Color(255, 250, 240),
+        IVORY => Color(255, 255, 240),
+        ANTIQUE_WHITE => Color(250, 235, 215),
+        LINEN => Color(250, 240, 230),
+        LAVENDER_BLUSH => Color(255, 240, 245),
+        MISTY_ROSE => Color(255, 228, 225),
+
+        // Black
+        GAINSBORO => Color(220, 220, 220),
+        LIGHT_GRAY => Color(211, 211, 211),
+        SILVER => Color(192, 192, 192),
+        DARK_GRAY => Color(169, 169, 169),
+        GRAY => Color(128, 128, 128),
+        DIM_GRAY => Color(105, 105, 105),
+        LIGHT_SLATE_GRAY => Color(119, 136, 153),
+        SLATE_GRAY => Color(112, 128, 144),
+        DARK_SLATE_GRAY => Color(47, 79, 79),
+        BLACK => Color(0, 0, 0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn color_parse_name() {
+        assert_eq!(Color::from_name("BLACK"), Some(BLACK));
+        assert_eq!(Color::from_name("BLaCk"), Some(BLACK));
+        assert_eq!(Color::from_name("black"), Some(BLACK));
+        assert_eq!(Color::from_name("b l a c     k"), None);
+    }
+
+    #[test]
+    fn color_parse_hex() {
+        assert_eq!(Color::from_str("#00"), Err(()));
+        assert_eq!(Color::from_str("#000000"), Ok(BLACK));
+        assert_eq!(Color::from_str("#00FF13"), Ok(Color(0, 0xFF, 0x13)));
+    }
 }

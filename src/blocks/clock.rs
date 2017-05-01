@@ -1,9 +1,10 @@
-use super::{BlockProducer, Block};
+use super::{Widget, Block};
 
 use std;
 use time;
 use std::borrow::Cow;
 
+#[derive(Clone, Debug)]
 pub struct Clock {
     format: String,
     fallback_settings: Block,
@@ -40,7 +41,7 @@ impl Clock {
     }
 }
 
-impl BlockProducer for Clock {
+impl Widget for Clock {
     fn update<'a>(&'a mut self) -> Cow<'a, Block> {
         self.fallback_settings.full_text = time::strftime(&self.format, &time::now()).unwrap();
 

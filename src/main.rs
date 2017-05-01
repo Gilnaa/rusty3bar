@@ -1,95 +1,103 @@
+extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-
-extern crate serde;
+extern crate serde_yaml;
 extern crate serde_json;
 
+#[macro_use]
+extern crate lazy_static;
+
+extern crate clap;
 extern crate time;
 
+use clap::{Arg, App, SubCommand};
 use blocks::*;
 use i3::*;
 use std::time::Duration;
 use std::borrow::Cow;
 
 pub mod color;
+mod config;
 mod i3;
 mod blocks;
 mod statusline;
 mod infinite_array;
 
-struct Funky {
-    data: Block,
-    flag: bool,
-}
-
-impl Funky {
-    pub fn new() -> Self {
-        Funky {
-            flag: false,
-            data: Block {
-                name: Some("funky".into()),
-                instance: Some("funky".into()),
-                full_text: "BLARG".into(),
-                foreground_color: Some(::color::named::CRIMSON),
-                background_color: Some(::color::named::BLACK),
-                ..Default::default()
-            },
-        }
-    }
-}
-
-impl BlockProducer for Funky {
-    fn update<'a>(&'a mut self) -> Cow<'a, Block> {
-        Cow::Borrowed(&self.data)
-    }
-
-    fn get_name(&self) -> Option<&str> {
-        Some("funky")
-    }
-
-    fn get_instance(&self) -> Option<&str> {
-        Some("funky")
-    }
-
-    fn handle_event(&mut self, event: Button) {
-        if self.flag {
-            self.data.foreground_color = Some(::color::named::CRIMSON);
-            self.data.background_color = Some(::color::named::BLACK);
-            self.data.full_text = "BLARG".into();
-        } else {
-            self.data.foreground_color = Some(::color::named::BLACK);
-            self.data.background_color = Some(::color::named::CRIMSON);
-            self.data.full_text = "FLORP".into();
-
-        }
-        self.flag = !self.flag;
-    }
-}
-
 struct Counter(usize);
-impl BlockProducer for Counter {
+impl Widget for Counter {
     fn update(&mut self) -> Cow<'static, Block> {
-        self.0 += 1;
+        // self.0 += 1;
         Cow::Owned(Block {
             full_text: self.0.to_string(),
+            name: Some("counter".into()),
+            instance: Some("counter".into()),
             ..Default::default()
         })
     }
+
+    fn get_name(&self) -> Option<&str> {
+        Some("counter")
+    }
+
+    fn get_instance(&self) -> Option<&str> {
+        Some("counter")
+    }
+
+    fn handle_event(&mut self, event: Button) {
+        match event {
+            Button::ScrollUp => self.0 = self.0.wrapping_add(1),
+            Button::ScrollDown => self.0 = self.0.wrapping_sub(1),
+            _ => {}
+        }
+    }
+
 }
 
+fn list_colors() {
+    for (name, color) in ::color::COLORS.iter() {
+        println!("{}\t{}", color, name.0);
+    }
+}
+
+use config::*;
+
 fn main() {
+    let matches = App::new("rusty3bar")
+                          .version("0.1")
+                          .author("Gilad Naaman <gilad.naaman@gmail.com>")
+                          .about("A status bar emitter for i3wm.")
+                          .arg(Arg::with_name("config")
+                               .short("c")
+                               .long("config")
+                               .value_name("FILE")
+                               .help("Sets a custom config file")
+                               .takes_value(true))
+                          .subcommand(SubCommand::with_name("print-colors")
+                                      .about("Prints the supported list of named colors."))
+                          .get_matches();
+    
+    if let Some(matches) = matches.subcommand_matches("print-colors") {
+        list_colors();
+        return;
+    }
     let mut line = statusline::StatusLine::new();
+    
+    // let mut x = BarConfiguration::new(1);
+    // x.widgets.insert("Gordon".into(), Widget::new(WidgetType::Clock("%d-%m-%Y".into())));
+    // x.widgets.insert("Maurice".into(), Widget::new(WidgetType::Clock("%d-%m-%Y".into())));
+    // println!("{}", serde_json::to_string(&x).unwrap());
+    // println!("{}", serde_yaml::to_string(&x).unwrap());
 
     line.add("Simple block");
 
     line.add(Block {
                  full_text: "<b>E</b> = M&#169;<sup>2</sup>".into(),
-                 foreground_color: Some(color::named::CRIMSON),
+                 foreground_color: Some(color::CRIMSON),
                  markup_type: MarkupType::Pango,
                  ..Default::default()
              });
 
-    line.add(Funky::new());
+    line.add(FlorpBlarg::new());
 
     line.add(Counter(0));
 
